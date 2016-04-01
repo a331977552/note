@@ -1,31 +1,14 @@
 #1配置
-##Beans.xml
-	<?xml version="1.0" encoding="UTF-8"?>
-	<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xmlns="http://www.springframework.org/schema/beans" 
-		xmlns:context="http://www.springframework.org/schema/context"
-		xmlns:aop="http://www.springframework.org/schema/aop"
-		 xmlns:mvc="http://www.springframework.org/schema/mvc"
-	 xmlns:tx="http://www.springframework.org/schema/tx"
-		xsi:schemaLocation="http://www.springframework.org/schema/beans
-		 http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
-	http://www.springframework.org/schema/mvc
-	http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
-	http://www.springframework.org/schema/aop 
-	http://www.springframework.org/schema/aop/spring-aop-4.2.xsd
-	http://www.springframework.org/schema/context 
-	http://www.springframework.org/schema/context/spring-context-4.2.xsd
-	http://www.springframework.org/schema/tx
-	http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
-	">
-	<bean  name="/myfirst.action" class="com.springmvc.test.bean.handler.myHander"></bean>
-	<!-- 适配器 -->
-	<bean class="org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter"></bean>
-<!-- 映射器 -->	
-	<bean class="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping"></bean>
-</beans>
+##web.xml	
+	<!-- 加载spring容器, 就是加载beans-*.xml的所有文件 -->
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>/WEB-INF/classes/spring/beans-*.xml</param-value>
+	</context-param>
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
 
-##web.xml
 	  <servlet>
 	  	<servlet-name>dispatcherServlet</servlet-name>
 	  	<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
@@ -47,7 +30,123 @@
 	  </servlet-mapping>
 
 
+##Beans-dao.xml
+	<?xml version="1.0" encoding="UTF-8"?>
+	<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+     http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+	http://www.springframework.org/schema/mvc
+	http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+	http://www.springframework.org/schema/aop 
+	http://www.springframework.org/schema/aop/spring-aop-4.2.xsd
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-4.2.xsd
+	http://www.springframework.org/schema/tx
+	http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
+	">
+	<context:property-placeholder location="classpath:db.properties" />
+	
 
+	<bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource">
+		<property name="driverClassName" value="${jdbc.driver}"></property>
+		<property name="url" value="${jdbc.url}"></property>
+		<property name="username" value="${jdbc.username}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+		<property name="maxTotal" value="10"></property>
+		<property name="maxIdle" value="5"></property>
+	</bean>
+
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="configLocation" value="classpath:mybatis/SqlmappingConfig.xml"></property>
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.go.test.dao"></property>
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+	</bean>
+	</beans>
+
+##beans-transaction.xml
+	<?xml version="1.0" encoding="UTF-8"?>
+	<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+		xmlns:aop="http://www.springframework.org/schema/aop" xmlns:mvc="http://www.springframework.org/schema/mvc"
+		xmlns:tx="http://www.springframework.org/schema/tx"
+		xsi:schemaLocation="http://www.springframework.org/schema/beans
+	     http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+	http://www.springframework.org/schema/mvc
+	http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+	http://www.springframework.org/schema/aop 
+	http://www.springframework.org/schema/aop/spring-aop-4.2.xsd
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-4.2.xsd
+	http://www.springframework.org/schema/tx
+	http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
+	">
+		<!--事物管理器-->
+		<bean  id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+			<property name="dataSource" ref="dataSource"></property>
+		</bean>
+	
+		<!--哪些方法需要执行事物-->
+		<tx:advice transaction-manager="transactionManager" id="txAdvice">
+			<tx:attributes>
+				<tx:method name="save*" propagation="REQUIRED"/>
+				<tx:method name="update*" propagation="REQUIRED"/>
+				<tx:method name="insert*" propagation="REQUIRED"/>
+				<tx:method name="delete*" propagation="REQUIRED"/>
+											<!--不是必须的.只读-->
+				<tx:method name="find*" propagation="SUPPORTS" read-only="true"/>
+				<tx:method name="get*" propagation="SUPPORTS" read-only="true"/>
+				<tx:method name="select*" propagation="SUPPORTS" read-only="true"/>
+			</tx:attributes>
+		</tx:advice>
+
+			<!--对 com.go.test.service.imp包下的所有类,所有方法实施事物控制-->
+		<aop:config >
+			<aop:advisor advice-ref="txAdvice"
+				pointcut="execution (* com.go.test.service.imp.*.*(..))"
+			/> 
+		</aop:config>
+	
+	</beans>
+
+
+##springmvc.xml
+		<?xml version="1.0" encoding="UTF-8"?>
+		<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+			xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+			xmlns:aop="http://www.springframework.org/schema/aop" xmlns:mvc="http://www.springframework.org/schema/mvc"
+			xmlns:tx="http://www.springframework.org/schema/tx"
+			xsi:schemaLocation="http://www.springframework.org/schema/beans
+		     http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+		http://www.springframework.org/schema/mvc
+		http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop-4.2.xsd
+		http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context-4.2.xsd
+		http://www.springframework.org/schema/tx
+		http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
+		">
+				
+				<mvc:annotation-driven></mvc:annotation-driven>
+			<context:component-scan base-package="com.go.test.controll"></context:component-scan>
+			<!-- 视图解析器, 默认会加载 解析 jstl view 以下配置是加载 前缀为 /WEB-INF/page/ 和后缀为.jsp -->
+			<bean
+				class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+				<property name="prefix" value="/WEB-INF/page/" />
+				<property name="suffix" value=".jsp" />
+			</bean>
+	
+		</beans>
+
+#利用好第一步加mybatis.xml 就整合完成了
+--------------------------
 
 
 
@@ -119,6 +218,11 @@
 		}
 
 --------
+	//声明了mapper以后,加载自动扫描的组件,就可以自动装载了.不用再getBean
+	@Autowired
+	ItemsMapperCustom itemsMapperCustom;
+
+------
 	//或者
 	@Controller
 	public class Myhandler  implements HttpRequestHandler{
@@ -130,8 +234,30 @@
 	}
 
 
+-------
+##事物控制
+		<bean  id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+			<property name="dataSource" ref="dataSource"></property>
+		</bean>
+		<tx:advice transaction-manager="transactionManager" id="txAdvice">
+			<tx:attributes>
+				<tx:method name="save*" propagation="REQUIRED"/>
+				<tx:method name="update*" propagation="REQUIRED"/>
+				<tx:method name="insert*" propagation="REQUIRED"/>
+				<tx:method name="delete*" propagation="REQUIRED"/>
+				<tx:method name="find*" propagation="SUPPORTS" read-only="true"/>
+				<tx:method name="get*" propagation="SUPPORTS" read-only="true"/>
+				<tx:method name="select*" propagation="SUPPORTS" read-only="true"/>
+			</tx:attributes>
+		</tx:advice>
+		
+		<aop:config >
+			<aop:advisor advice-ref="transactionManager" 
+				pointcut="execution (* com.go.test.service.imp.*.(..))"
+			/>
+		</aop:config>
 
-
+ 
 
 
 
