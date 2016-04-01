@@ -52,10 +52,11 @@
 
 
 #2.非注解的映射器和适配器
-##      非注解的映射器
+##      非注解的映射器	
+	<!---->
 	<bean class="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping"></bean>
-<!---->
-	<bean id="myHander"  name="/myfirst.action" class="com.springmvc.test.bean.handler.myHander"></bean>
+	<!---->
+	<bean id="myHander"  name="/myfirst.action" class="com.springmvc.test.bean.handler.myHander"></bean>		
 	<bean   class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
 	<property name="mappings">
 		<props >
@@ -63,16 +64,13 @@
 			<prop key="/myfirst2.action">myHander</prop>
 		</props>
 	</property>
-</bean>
+	</bean>
 
 ##      非注解的适配器
-<!--要求编写的handler 实现 HttpRequestHandler-->
+	<!--要求编写的handler 实现 HttpRequestHandler-->
 	<bean  class="org.springframework.web.servlet.mvc.HttpRequestHandlerAdapter"></bean>
-<!--要实现controller 接口-->
+	<!--要实现controller 接口-->
 	<bean class="org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter"></bean>
-
-
-
 
 ##    注解的映射器
 		<bean  class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping"></bean>
@@ -88,12 +86,14 @@
 		<property name="suffix" value=".jsp"/>
 	</bean>
 
-##自动注解开发
+##自动注解开发(直接用这个,前面都是过程,当然要加上视图解析器)
 
 	<!-- 扫描. 这样就不用再配controller了 -->
 	<context:component-scan base-package="com.springmvc.test.bean.handler"/>
 		<!-- 加上这句话 就不用再配置 注解适配器和映射器了 而且他还会加载一堆有用的组件 -->
 	<mvc:annotation-driven></mvc:annotation-driven>
+
+----------------------
 	//加Controller
 	@Controller
 	public class AnnotationController1 {
@@ -116,8 +116,19 @@
 		view.addObject("list",details);
 		view.setViewName("/WEB-INF/page/details.jsp");
 			return view;
-		
+		}
+
+--------
+	//或者
+	@Controller
+	public class Myhandler  implements HttpRequestHandler{
+	@RequestMapping("dpppppp")
+	@Override
+	public void handleRequest(HttpServletRequest arg0, HttpServletResponse arg1) throws ServletException, IOException {
+		System.out.println("aaaaaaaaa");
+		arg0.getRequestDispatcher("/WEB-INF/page/index.jsp").forward(arg0, arg1);
 	}
+
 
 
 
