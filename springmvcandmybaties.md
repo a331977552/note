@@ -226,3 +226,5 @@
 	resultType 就是方法的返回值.
 	调用的时候 是 用 openSession.getMapper(UserDao.class); 获取dao层实例. 然后调用相应方法就可以实现功能.
 	
+###sql动态语句:
+	![](http://i.imgur.com/M4dp7EW.png)
