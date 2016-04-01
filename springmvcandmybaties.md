@@ -228,3 +228,153 @@
 	
 ###sql动态语句:
 	![](http://i.imgur.com/M4dp7EW.png)
+
+###懒加载
+			 
+			<settings>
+			<!--开启加载-->
+			<setting name="lazyLoadingEnabled" value="true"/>
+			<!--按需加载-->
+			<setting name="aggressiveLazyLoading" value="false"/>
+			</settings>
+			<!--开启缓存-->
+###一二级缓存,
+		1级缓存 是在同一个sqlsession中 执行查询时会缓存,如果执行的 update insert delete 并且 commit以后则会清空一级缓存
+		2级缓存 是在同一个mapper.xml中 执行查询时会缓存,如果执行的 update insert delete 并且 commit以后则会清空二级缓存
+		sqlmapconfig中开启   (默认开启)	<setting name="cacheEnabled" value="true"/>
+		还需要单独在mapper.xml文件中 单独开启,语法: <cache />
+		二级缓存以mapper的namespace做区别,需要让支持二级缓存的poji实现序列化接口.
+		因为缓存的介质不同,可以是内存或者硬盘,或者远程服务器
+		缓存的数据结构是 hashMap.
+		select 的xml字段中可以用 userCache字段 设置为false 来禁用二级缓存. 默认为true;
+		<select id="findUserByid" parameterType="int"   resultType="user" usecache="true" >
+		update insert delete 的xml字段中,flushCache="true" 来刷新缓存,默认为true, 避免数据库脏读
+		<delete id="deleteUserById"  parameterType="int" flushCache="true">		
+###整合ehcache
+	<cache type="ehcache实现mybatis cache接口的类全限定名"/>
+	还要加入ehcache的xml配置文件
+
+
+###mybatis-spring整合
+#####SqlmappingConfig.xml中 基本只写别名,
+#####在写原始dao时	SqlmappingConfig配置mapper
+	<mappers>
+		<mapper resource="UserMapping.xml"/>
+	</mappers>
+
+在写mapperDao时 SqlmappingConfig不用配置mapper,也不用配置扫描包,全在spring 配置完成
+	
+####beans.xml
+#####配置数据源(!)  该应用配置的是dhcp数据源  
+	<!--加载数据库配置项-->
+	<context:property-placeholder location="classpath:db.properties"/>
+	<bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource">
+		<property name="driverClassName" value="${jdbc.driver}"></property>
+		<property name="url" value="${jdbc.url}"></property>
+		<property name="username" value="${jdbc.username}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+		<property name="maxTotal" value="10"></property>
+		<property name="maxIdle" value="5"></property>
+	</bean>
+####配置 mybatis的 sqlSessionfactory(!)
+	<!--配置 mybatis的 sqlSessionfactory,注入配置文件.和数据源-->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="configLocation" value="mybatis/SqlmappingConfig.xml"></property>
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+
+###开发原始dao
+	<!--开发原始dao,注入sessionfactory, 让userDao  extends  SqlSessionDaoSupport 就可以使用 getSqlSession(); -->
+	<bean class="com.mybatis.test.dao.UserDaoImp" id="userdao">
+		<property name="sqlSessionFactory" ref="sqlSessionFactory"></property>
+	</bean>
+	
+
+##开发mapper dao(!)
+		把UserMapper.java和UserMapper.xml 放在一个包下. 同理多个类 放置多个xml文件 xml namespace必须为对应的全类名
+		SqlmappingConfig 不用设置任何东西
+			<!--导入扫描mapperdap的 类.  告诉 包地址,自动扫描,  并且告诉sqlsessionfactory 如果有多个包, 就用 (半月),隔开 -->
+			<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+			<property name="basePackage" value="com.mybatis.test.dao"></property>
+			<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+
+
+
+#逆向工程
+#### 根据表自动创建mapper,mapper.xml,pojo ####
+	//需要运行的代码
+			List<String> warnings = new ArrayList<String>();
+		   boolean overwrite = true;
+		   File configFile = new File("generatorConfig.xml");
+		   ConfigurationParser cp = new ConfigurationParser(warnings);
+		   Configuration config = null;
+		
+			try {
+			config = cp.parseConfiguration(configFile);
+			   DefaultShellCallback callback = new DefaultShellCallback(overwrite);
+			   MyBatisGenerator myBatisGenerator = new MyBatisGenerator(config, callback, warnings);
+			   myBatisGenerator.generate(null);
+		
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+
+----------------
+#### xml文件. ####
+
+		<?xml version="1.0" encoding="UTF-8"?>
+		<!DOCTYPE generatorConfiguration
+		  PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+		  "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+		
+		<generatorConfiguration>
+		
+		  <context id="DB2Tables" targetRuntime="MyBatis3">
+		  <commentGenerator>
+				<!--不生成注释-->
+				<property name="suppressAllComments" value="true"/>
+			</commentGenerator>
+		    <jdbcConnection driverClass="com.mysql.jdbc.Driver"
+		        connectionURL="jdbc:mysql://localhost:3306/shop"
+		        userId="root"
+		        password="123456">
+		    </jdbcConnection>
+			<!--false代表int类型自动圣城integer类型,true代表生成bigdecimal-->
+		    <javaTypeResolver >
+		      <property name="forceBigDecimals" value="false" />
+		    </javaTypeResolver>
+			<!--生成的po路径-->
+		    <javaModelGenerator targetPackage="com.go.test.po" targetProject=".\src">
+		      <property name="enableSubPackages" value="true" />
+		      <property name="trimStrings" value="true" />
+		    </javaModelGenerator>
+				<!--生成的的mapper.java路径-->
+		    <sqlMapGenerator targetPackage="com.go.test.dao"  targetProject=".\src">
+		      <property name="enableSubPackages" value="true" />
+		    </sqlMapGenerator>
+			<!--生成的的mapper.xml路径-->
+		    <javaClientGenerator type="XMLMAPPER" targetPackage="com.go.test.dao"  targetProject=".\src">
+		      <property name="enableSubPackages" value="true" />
+		    </javaClientGenerator>
+			<!--哪些表-->
+		    <table  tableName="items" >
+		   
+		    </table>
+		    <table  tableName="order_" >
+		   
+		    </table>
+		    <table  tableName="user" >
+		   		
+		    </table>
+		   
+		
+		  </context>
+		</generatorConfiguration>
+//逆向工程需要的jar
+mybatis-generator-core-1.3.2.jar
+
+//jdbc连接的jar						
+mysql-connector-java-5.1.38-bin.jar
+
+//生成的文件防止报错所需要的jar(可以不用)					
+mybatis-3.2.8.jar
