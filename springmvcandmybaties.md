@@ -1,4 +1,4 @@
-#1配置
+ #1配置
 ##web.xml	
 	<!-- 加载spring容器, 就是加载beans-*.xml的所有文件 -->
 	<context-param>
@@ -28,7 +28,16 @@
 		-->
 	  <url-pattern>*.action</url-pattern>
 	  </servlet-mapping>
-
+	<!--编码处理过滤器-->
+	<filter>
+		<filter-name>CharacterEncodingFilter</filter-name>
+		<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+		<init-param>
+			<param-name>encoding</param-name>
+			<param-value>utf-8</param-value>
+		</init-param>
+	</filter>
+	
 
 ##Beans-dao.xml
 	<?xml version="1.0" encoding="UTF-8"?>
@@ -134,7 +143,8 @@
 		http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
 		">
 				
-				<mvc:annotation-driven></mvc:annotation-driven>
+			<mvc:annotation-driven conversion-service="conversionService"></mvc:annotation-driven>
+
 			<context:component-scan base-package="com.go.test.controll"></context:component-scan>
 			<!-- 视图解析器, 默认会加载 解析 jstl view 以下配置是加载 前缀为 /WEB-INF/page/ 和后缀为.jsp -->
 			<bean
@@ -142,7 +152,14 @@
 				<property name="prefix" value="/WEB-INF/page/" />
 				<property name="suffix" value=".jsp" />
 			</bean>
-	
+			<bean id="conversionService"  class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+			<property name="converters">
+				<list>
+					<!--自定义转换器-->
+					<bean  class="com.go.test.converter.DateConverter"></bean>
+				</list>
+			</property>
+	</bean>
 		</beans>
 
 #利用好第一步加mybatis.xml 就整合完成了
@@ -193,6 +210,7 @@
 	<mvc:annotation-driven></mvc:annotation-driven>
 
 ----------------------
+###controll开发
 	//加Controller
 	@Controller
 	public class AnnotationController1 {
@@ -225,13 +243,36 @@
 ------
 	//或者
 	@Controller
+	//对url进行分类管理
+	@RequestMapping("/items")
 	public class Myhandler  implements HttpRequestHandler{
+	//实际请求的路径是 /items/dppppp
+	 //可以用method字段控制请求方法
+	//	@RequestMapping(value="/queryItem",method={RequestMethod.POST,RequestMethod.GET})
+
 	@RequestMapping("dpppppp")
 	@Override
 	public void handleRequest(HttpServletRequest arg0, HttpServletResponse arg1) throws ServletException, IOException {
 		System.out.println("aaaaaaaaa");
 		arg0.getRequestDispatcher("/WEB-INF/page/index.jsp").forward(arg0, arg1);
 	}
+
+----
+	//返回字符串类型		
+	@RequestMapping("queryItemsById")        //自动参数注入,根据映射注入
+	public String queryItemsById(Model model,@RequestParam(value="id",defaultValue="1",required=true)String item_id){
+
+		model.addAttribute("items", items);
+		//返回到 前缀+success+后缀页面
+		return "success";
+		//重定向到 当前的controll @RequestMapping value=queryItem 中;
+		//return "redirect:queryItem";
+		//页面转发到 当前的controll @RequestMapping value=queryItem 中;
+		//return "forward:queryItem";
+		
+	}
+
+
 
 
 -------
@@ -257,12 +298,9 @@
 			/>
 		</aop:config>
 
- 
 
-
-
-
-
+####pojo参数的绑定
+	在input域中的参数名称,要跟poji的属性名称一致,就可以映射成功
 
 
 
