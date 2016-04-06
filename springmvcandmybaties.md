@@ -26,7 +26,7 @@
 			/*   这种配置不正确,使用这种配置 最终要转发到一个js页面
 				仍然会有dispatcherServelet解析jsp地址,不能根据jsp页面找到handler会报错
 		-->
-	  <url-pattern>*.action</url-pattern>
+	  <url-pattern>/</url-pattern>
 	  </servlet-mapping>
 	<!--编码处理过滤器-->
 	<filter>
@@ -126,41 +126,50 @@
 
 
 ##springmvc.xml
-		<?xml version="1.0" encoding="UTF-8"?>
-		<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-			xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
-			xmlns:aop="http://www.springframework.org/schema/aop" xmlns:mvc="http://www.springframework.org/schema/mvc"
-			xmlns:tx="http://www.springframework.org/schema/tx"
-			xsi:schemaLocation="http://www.springframework.org/schema/beans
-		     http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
-		http://www.springframework.org/schema/mvc
-		http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
-		http://www.springframework.org/schema/aop 
-		http://www.springframework.org/schema/aop/spring-aop-4.2.xsd
-		http://www.springframework.org/schema/context 
-		http://www.springframework.org/schema/context/spring-context-4.2.xsd
-		http://www.springframework.org/schema/tx
-		http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
-		">
-				
-			<mvc:annotation-driven conversion-service="conversionService"></mvc:annotation-driven>
+    <?xml version="1.0" encoding="UTF-8"?>
+    <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:aop="http://www.springframework.org/schema/aop" xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+    http://www.springframework.org/schema/mvc
+    http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+    http://www.springframework.org/schema/aop 
+    http://www.springframework.org/schema/aop/spring-aop-4.2.xsd
+    http://www.springframework.org/schema/context 
+    http://www.springframework.org/schema/context/spring-context-4.2.xsd
+    http://www.springframework.org/schema/tx
+    http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
+    ">
+    
+    <mvc:annotation-driven conversion-service="conversionService"></mvc:annotation-driven>
+    
+    <context:component-scan base-package="com.go.test.controll"></context:component-scan>
+    <!-- 视图解析器, 默认会加载 解析 jstl view 以下配置是加载 前缀为 /WEB-INF/page/ 和后缀为.jsp -->
+    <bean
+    class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    <property name="prefix" value="/WEB-INF/page/" />
+    <property name="suffix" value=".jsp" />
+    </bean>
+    <bean id="conversionService"  class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+    <property name="converters">
+    <list>
+    <!--自定义转换器-->
+    <bean  class="com.go.test.converter.DateConverter"></bean>
+    </list>
+    </property>
+    </bean>
+    </beans>
+---------
+###参数绑定
+1. pojo绑定:   		  item.name  形参是 Item item 就可以绑定 
 
-			<context:component-scan base-package="com.go.test.controll"></context:component-scan>
-			<!-- 视图解析器, 默认会加载 解析 jstl view 以下配置是加载 前缀为 /WEB-INF/page/ 和后缀为.jsp -->
-			<bean
-				class="org.springframework.web.servlet.view.InternalResourceViewResolver">
-				<property name="prefix" value="/WEB-INF/page/" />
-				<property name="suffix" value=".jsp" />
-			</bean>
-			<bean id="conversionService"  class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
-			<property name="converters">
-				<list>
-					<!--自定义转换器-->
-					<bean  class="com.go.test.converter.DateConverter"></bean>
-				</list>
-			</property>
-	</bean>
-		</beans>
+2. 数组绑定:   		  直接 绑定. id=1,id=2,  Integer[] id;
+
+3. list<pojo>绑定:      则在Vo中声明List<item>  itemList  形参填写 ItemVo itemVo  页面定义:  itemList[${state.index}].id=1
+
+4. Map<pojo>绑定:  		则在Vo中声明Map<String,item>  itemMap  形参填写 ItemVo itemVo  页面定义:  itemList['price'].id=1
 
 #利用好第一步加mybatis.xml 就整合完成了
 --------------------------
