@@ -1,4 +1,4 @@
- #1配置
+#1配置
 ##web.xml	
 	<!-- 加载spring容器, 就是加载beans-*.xml的所有文件 -->
 	<context-param>
@@ -162,7 +162,7 @@
     </bean>
     </beans>
 ---------
-###参数绑定
+#2 参数绑定
 1. pojo绑定:   		  item.name  形参是 Item item 就可以绑定 
 
 2. 数组绑定:   		  直接 绑定. id=1,id=2,  Integer[] id;
@@ -171,8 +171,126 @@
 
 4. Map<pojo>绑定:  		则在Vo中声明Map<String,item>  itemMap  形参填写 ItemVo itemVo  页面定义:  itemList['price'].id=1
 
+#3 springmvc 全局异常捕获
+	public class CustomExceptionHandler  implements HandlerExceptionResolver{
+	
+		@Override
+		public ModelAndView resolveException(HttpServletRequest arg0, HttpServletResponse arg1, Object handler,
+				Exception ex) {
+			CustomException  exception=null;
+				if(ex instanceof  CustomException)
+				{
+					  exception=	(CustomException)ex;	
+				}else{
+					exception=new CustomException("未知错误");
+				}
+				String message = exception.getMessage();
+				ModelAndView andView=new ModelAndView();
+				andView.addObject("message",message);
+				andView.setViewName("error.jsp");
+			return null;
+		}
+			
+		<!-- 在sringmvc.xml配置上全局异常捕获处理器就行了, 重复的配置只会生效一个-->
+	<bean  class="com.test.controller.CustomExceptionResolver"></bean>
+
+#4 springmvc 图片上传
+打入jar包
+	commons-fileupload-1.3.1.jar
+	commons-io-2.4.jar
+#####springmvc.xml 配置	
+	<bean
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize">
+			<!-- 5MB -->
+		<value >5242880</value>
+		</property>
+	</bean>
+-------
+	//代码实现
+	public void EditItem(MultipartFile picFile){
+		if(picFile!=null){
+			String originalFilename = picFile.getOriginalFilename();
+			originalFilename=originalFilename.substring(originalFilename.lastIndexOf('.'), originalFilename.length());
+			String fileName=UUID.randomUUID()+originalFilename;
+			String path="D:\\xxxxx\\";
+			try {
+				picFile.transferTo(new File(path,fileName));
+			} catch (IllegalStateException | IOException e) {
+				e.printStackTrace();
+			}
+			//把名字和路径存到数据库
+		}else{
+			//上传失败
+			//或者为空则不上传 ,看业务需要
+		}
+	}
+	
+	<!--页面代码   name要和EditItem 里面的 MultipartFile 的形参名称一样-->
+	<input type="file"  name="picFile" value="上传"  />
+#5 json支持:
+####打入jackson-core-asl-1.9.13.jar 和jackson-mapper-asl-1.9.13.jar. 并且用<mvc:annotation-driven />注解 则不用单独配置
+		
+	//传入的是json字符串则通过注解 @RequestBody 自动映射到 items中.在html代码中上传的数据是json时,必须改变
+	// contentType =application/json;charset=utf-8; 详情参见 springmvc 第二天 17
+	//返回的时候通过注解@ResponseBody自动映射
+	public @ResponseBody Items  getJsonObject(@RequestBody Items items){
+				//一顿操作 获取变化后的 item或者别的什么 返回就行了
+		return items;
+	}
+
+#6 RESTful 风格url实现 一种设计理念 
+	//访问时则 为 http://localho:8080/queryItems/002/2
+	@RequestMapping("/queryItems/{id}/{type}") 
+	public ModelAndView queryItems(@PathVariable("id") Integer id,@PathVariable("type") Integer type){
+	}
+
+	<!-- 防止我们想要访问静态数据时   因为  web.xml配置的 匹配路径  '/'  匹配到所有路径, 导致每次都找相应的handler 
+		而不去找静态资源  导致找不到对应的handler    而报404错误 -->
+		<!-- http://localhost:8080/js/** URL 匹配 js 目下下的静态资源 而不是去找 handler  -->
+	<mvc:resources location="/js/" mapping="/js/**"></mvc:resources>
+#7 拦截器
+1.实现 HandlerInteceptor 接口:
+	public class MyInterceptor  implements HandlerInterceptor{
+		//完成后调用,处理全局异常.添加日志
+		@Override
+		public void afterCompletion(HttpServletRequest arg0, HttpServletResponse arg1, Object arg2, Exception arg3)
+				throws Exception {
+		}
+		//在handler执行之后,但是在返回modelAndView 之前, 可以添加用些公用的 model,例如每个页面都有的导航栏
+		@Override
+		public void postHandle(HttpServletRequest arg0, HttpServletResponse arg1, Object arg2, ModelAndView arg3)
+				throws Exception {
+			// TODO Auto-generated method stub		
+		}
+		//在handler 执行之前,返回true  放行,返回false  拦截 ,可以用作权限管理
+		@Override
+		public boolean preHandle(HttpServletRequest arg0, HttpServletResponse arg1, Object arg2) throws Exception {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+2.配置:
+	<mvc:interceptors>
+		<mvc:interceptor>
+		<!-- 多个拦截器 顺序执行   preHandle 按照顺序执行,  postHandle,afterCompletion方法按照配置的逆序执行-->
+				<!--  /** 表示所有的url以及他的子路径, 而 /* 表示只拦截当前路径-->
+			<mvc:mapping path="/**"/>
+			<bean class="com.test.interceptor.MyInterceptor"></bean>
+		</mvc:interceptor>
+		<mvc:interceptor>
+			<mvc:mapping path="/**"/>
+			<bean class="com.test.interceptor.MyInterceptor2"></bean>
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	
+
+-------------------
 #利用好第一步加mybatis.xml 就整合完成了
---------------------------
+---------------------------
+
+
 
 
 
@@ -319,8 +437,9 @@
 		response.setContentType("application/json;charset=utf-8");
 		response.getWriter().write("啊啊啊啊啊啊啊啊啊啊啊啊啊啊"
 				+ "");
-
-
+###小知识
+	//以斜杠开头是绝对路径, 以下可以是 http://localhost/items/updateItems 而不是 http://localhost/项目名称/items/updateItems
+	<a  href="/items/updateItems">修改</a></td>
 
 --------------------------------------------
 
