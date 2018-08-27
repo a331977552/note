@@ -1,2 +1,2 @@
 # note
-自己的笔记的仓库
+note for learning spring, mybatis, spring mvc
